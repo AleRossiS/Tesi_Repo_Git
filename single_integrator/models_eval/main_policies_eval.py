@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # force JAX to use CPU  # Set JAX to use CPU only, avoiding GPU/TPU usage
 
 # Models parameters paths
-filepath_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models_old", "actor_policy_ALM.pkl")
+# Models parameters paths
+filepath_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models", "models_ALM_40_iters", "actor_policy_ALM_iter40.pkl")
 
-filepath_NO_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models_old", "actor_policy_NO_ALM.pkl")
+filepath_NO_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models", "models_NO_ALM_40_iters", "actor_policy_NO_ALM_iter40.pkl")
 
 # Create the actors models 
 actor_ALM, _ = fnc.load_actor(filepath_ALM)

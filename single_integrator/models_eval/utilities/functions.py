@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 from tqdm import tqdm
 from .OCP_solver import OcpSingleIntegrator
+import time
 
 
 
@@ -479,12 +480,15 @@ def solve_TO_problems(actor, initial_states, N, target, cost_params, obstacle_pa
 	u_opt_trajs = []
 	success_flags = []
 	cost_trajs = []
+	time_trajs = []
 
 	#3. Solve the OCP for each initial state using the warm-start guesses
 	for i, x_init in enumerate(tqdm(initial_states, desc="Solving TO Problems", unit="traj")):
 		X_guess = x_trajs_guess[i]
 		U_guess = u_trajs_guess[i]
 
+		# Start timing the solver for performance evaluation 
+		start_time = time.perf_counter()
 
 		try: 
 
@@ -526,13 +530,17 @@ def solve_TO_problems(actor, initial_states, N, target, cost_params, obstacle_pa
 				u_opt_trajs.append(None)
 				success_flags.append(False)
 
+		# Stop timing the solver
+		end_time = time.perf_counter()
+		time_trajs.append(end_time - start_time)
+
 		cost = compute_trajectory_cost(x_opt, u_opt, cost_fn=cost_function, target_pos=target, params=cost_params) if success_flags[-1] else None
 
 		cost_trajs.append(cost)
 
 
 
-	return x_opt_trajs, u_opt_trajs, success_flags, cost_trajs
+	return x_opt_trajs, u_opt_trajs, success_flags, cost_trajs, time_trajs
 
 
 

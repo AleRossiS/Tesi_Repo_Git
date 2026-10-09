@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # force JAX to use CPU  # Set JAX to use CPU only, avoiding GPU/TPU usage
 
 # Models parameters paths
-filepath_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models_old", "actor_policy_ALM.pkl")
+filepath_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models", "models_ALM_40_iters", "actor_policy_ALM_iter40.pkl")
 
-filepath_NO_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models_old", "actor_policy_NO_ALM.pkl")
+filepath_NO_ALM = os.path.join("Tesi_Repo_Git", "single_integrator", "saved_models", "models_NO_ALM_40_iters", "actor_policy_NO_ALM_iter40.pkl")
 
 # Create the actors models 
 actor_ALM, _ = fnc.load_actor(filepath_ALM)
@@ -22,7 +22,7 @@ actor_NO_ALM, _ = fnc.load_actor(filepath_NO_ALM)
 
 # 1. Solve TO problems ALM case
 print("Starting TO problems solving for plot rollout, ALM case...\n")
-x_opt_alm, u_opt_alm, status_alm, cost_ALM = fnc.solve_TO_problems(
+x_opt_alm, u_opt_alm, status_alm, cost_ALM, _ = fnc.solve_TO_problems(
     actor=actor_ALM,
     initial_states=INITIAL_STATES,
     N=N,
@@ -38,7 +38,7 @@ print(f"Success rate TO (ALM): {success_rate_alm:.2f}% ({sum(status_alm)}/{len(s
 
 # 2. Solve TO problems NO ALM case
 print("Starting TO problems solving for plot rollout, NO ALM case...\n")
-x_opt_no_alm, u_opt_no_alm, status_no_alm, cost_NO_ALM = fnc.solve_TO_problems(
+x_opt_no_alm, u_opt_no_alm, status_no_alm, cost_NO_ALM, _ = fnc.solve_TO_problems(
       actor=actor_NO_ALM,
       initial_states=INITIAL_STATES,
       N=N,
@@ -71,7 +71,7 @@ x_vals, y_vals, initial_states = fnc.generate_grid_initial_states(spacing=0.8)
 
 # 2. Solve TO problems ALM case
 print("Starting TO problems solving for Costs Comparison - ALM case...\n")
-x_opt_alm_grid, u_opt_alm_grid, status_alm_grid, _ = fnc.solve_TO_problems(
+x_opt_alm_grid, u_opt_alm_grid, status_alm_grid, _, _ = fnc.solve_TO_problems(
     actor=actor_ALM,
     initial_states=initial_states,
     N=N,
@@ -87,7 +87,7 @@ print(f"Success rate TO (ALM): {success_rate_alm:.2f}% ({sum(status_alm_grid)}/{
 
 # 3. Solve TO problems NO ALM case
 print("Starting TO problems solving for Costs Comparison - NO ALM case...\n")
-x_opt_no_alm_grid, u_opt_no_alm_grid, status_no_alm_grid, _ = fnc.solve_TO_problems(
+x_opt_no_alm_grid, u_opt_no_alm_grid, status_no_alm_grid, _, _ = fnc.solve_TO_problems(
       actor=actor_NO_ALM,
       initial_states=initial_states,
       N=N,

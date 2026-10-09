@@ -4,6 +4,7 @@ from matplotlib.patches import Ellipse, Patch
 import matplotlib.colors as mcolors
 from . import functions as fnc
 from .parameters import *
+import math
 
 
 
@@ -182,6 +183,154 @@ def plot_rollouts_comparison(x_trajs_ALM, x_trajs_NO_ALM,
     fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=6, fontsize=9.5, framealpha=0.9)
     plt.tight_layout()
     plt.show()
+
+
+
+
+def plot_all_iterations_rollouts(rollouts_history, obstacle_params=OBSTACLE_PARAMETERS, target_pos=TARGET_POS, show_cost=True, show_violations=True):
+    """
+    Plots all iteration rollouts in a single window containing a dynamic grid of subfigures.
+    Each subfigure corresponds to a single iteration and contains two side-by-side plots 
+    (ALM vs NO ALM) for direct comparison.
+
+    Args:
+        rollouts_history (list of dict): List containing rollout data for each iteration.
+        obstacle_params (list of dict, optional): Elliptical obstacles parameters.
+        target_pos (array-like, optional): Target coordinates [x, y].
+        show_cost (bool, optional): Whether to display average cost in the summary box.
+        show_violations (bool, optional): Whether to display average max violation in the summary box.
+    """
+    n_iters = len(rollouts_history)
+    if n_iters == 0:
+        return
+
+    # --- 1. Figure and Grid Setup ---
+    cols = int(math.ceil(math.sqrt(n_iters)))
+    rows = int(math.ceil(n_iters / cols))
+
+    # Create the main constrained figure
+    fig = plt.figure(figsize=(cols * 7, rows * 4), layout='constrained')
+    fig.suptitle("Evolution of Policy Rollouts Across Iterations", fontsize=18, fontweight='bold')
+
+    # Generate a grid of independent subfigures with increased spacing for better separation
+    subfigs = fig.subfigures(rows, cols, wspace=0.1, hspace=0.15).flatten()
+
+    # --- 2. Iterate and Plot Subfigures ---
+    for idx in range(rows * cols):
+        subfig = subfigs[idx]
+        
+        # Skip excess subfigures if the grid is larger than the number of iterations
+        if idx >= n_iters:
+            continue
+            
+        # --- Modifica: Separazione più netta tramite bordo e sfondo della subfigure ---
+        subfig.patch.set_facecolor('#f8f9fa')  # Sfondo leggermente grigio
+        subfig.patch.set_edgecolor('gray')     # Colore del bordo
+        subfig.patch.set_linewidth(1.5)        # Spessore del bordo
+
+        item = rollouts_history[idx]
+        iter_num = item['iter']
+        
+        # Set the title for the current iteration subfigure
+        subfig.suptitle(f"ITERATION {iter_num}", fontweight='bold', fontsize=13, color='darkblue')
+        
+        # Create 2 side-by-side plots INSIDE the current subfigure
+        axs = subfig.subplots(1, 2)
+        
+        datasets = [
+            ("ALM", item['x_alm'], item['costs_alm'], axs[0]),
+            ("NO ALM", item['x_no_alm'], item['costs_no_alm'], axs[1])
+        ]
+        
+        # --- 3. Inline Plotting Logic (ALM vs NO ALM) ---
+        for title, x_trajs, costs, ax in datasets:
+            # Draw obstacles
+            for obs in obstacle_params:
+                ellipse = Ellipse(
+                    xy=(obs['x_ob'], obs['y_ob']),
+                    width=obs['a'] * 2, height=obs['b'] * 2,
+                    edgecolor='green', facecolor='green', alpha=1, zorder=1
+                )
+                ax.add_patch(ellipse)
+
+            # Draw target position
+            ax.plot(target_pos[0], target_pos[1], marker='*', color='red', 
+                    markeredgecolor='none', markersize=12, label='Target', zorder=6)
+
+            n_total = len(x_trajs)
+            n_feasible, n_violating = 0, 0
+            maxv_list = []
+
+            for i in range(n_total):
+                x_traj = x_trajs[i]
+                x_init = x_traj[0]
+
+                feasible, point_violations = fnc.check_trajectory_feasibility(x_traj, obstacle_params)
+                maxv = np.max(point_violations)
+                
+                if feasible:
+                    n_feasible += 1
+                else:
+                    n_violating += 1
+                maxv_list.append(maxv)
+
+                line_color = 'blue' if feasible else 'orange'
+
+                # Plot trajectory
+                ax.plot(x_traj[:, 0], x_traj[:, 1], color=line_color, alpha=0.6, linewidth=1.0, zorder=2)
+
+                # Check for point violations and plot red dots if inside obstacles
+                inside_mask = np.array([fnc.is_inside_obstacle(pt[0], pt[1], obstacle_params) for pt in x_traj])
+                if np.any(inside_mask):
+                    ax.plot(x_traj[inside_mask, 0], x_traj[inside_mask, 1], 'o', 
+                            color='red', markersize=2.5, zorder=5)
+
+                # Plot initial state
+                ax.plot(x_init[0], x_init[1], 'ko', markersize=2, zorder=4)
+
+
+            # Create a summary box with feasibility and cost information
+            box_text_lines = []
+            
+            if show_violations:
+                box_text_lines.append(f"Feas: {n_feasible}/{n_total} | Viol: {n_violating}/{n_total}")
+                
+            if show_cost:
+                avg_cost = np.nanmean(costs) if costs is not None else None
+                if avg_cost is not None and not np.isnan(avg_cost):
+                    box_text_lines.append(f"Avg Cost: {avg_cost:.2f}")
+
+            # Show the summary box only if there are lines to display
+            if box_text_lines:
+                box_text = "\n".join(box_text_lines)
+                ax.text(0.5, 0.02, box_text,
+                        transform=ax.transAxes, fontsize=9, ha="center", va="bottom",
+                        bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.9),
+                        zorder=100)
+
+            ax.set_title(title, fontsize=11, fontweight='bold')
+            ax.set_xticks([]) # Remove axis ticks to keep the grid clean
+            ax.set_yticks([])
+            ax.set_aspect('equal', adjustable='box')
+            
+            # Add a subtle separation border
+            for spine in ax.spines.values():
+                spine.set_color('lightgray')
+                spine.set_linewidth(0.5)
+
+    # --- 4. Global Legend ---
+    legend_elements = [
+        plt.Line2D([0], [0], color='blue', alpha=0.6, label='Feasible Traj'),
+        plt.Line2D([0], [0], color='orange', alpha=0.6, label='Unfeasible Traj'),
+        plt.Line2D([0], [0], color='none', marker='o', markerfacecolor='red', markeredgecolor='none', label='Point Inside Obstacle', markersize=6),
+        Patch(facecolor='green', alpha=1, label='Obstacles'),
+        plt.Line2D([0], [0], marker='*', color='red', label='Target', linestyle='None', markersize=10)
+    ]
+    
+    fig.legend(handles=legend_elements, loc='lower center', ncol=5, fontsize=11, bbox_to_anchor=(0.5, -0.03))
+    #plt.show()
+
+
 
 
 
@@ -448,27 +597,27 @@ def plot_cost_convergence(
     std_costs_no_alm,
     to_episodes_alm=None,
     to_episodes_no_alm=None,
-    critic_updates_alm=None,
-    actor_updates_alm=None,
-    critic_updates_no_alm=None,
-    actor_updates_no_alm=None
+    mean_times_alm=None,    
+    std_times_alm=None,
+    mean_times_no_alm=None,
+    std_times_no_alm=None   
 ):
     """
-    Plots the convergence of the mean TO trajectory cost (with ±1 std dev bands)
-    against training iterations, TO episodes solved, and Actor/Critic updates.
+    Plots the convergence of the mean TO trajectory cost, TO episodes solved, 
+    and mean OCP resolution time (with +-1 std dev bands) against training iterations.
 
     Args:
-        iters (list/array): List of modeled training iterations.
-        mean_costs_alm (array): Mean costs for ALM.
-        std_costs_alm (array): Standard deviations of costs for ALM.
-        mean_costs_no_alm (array): Mean costs for NO ALM.
-        std_costs_no_alm (array): Standard deviations of costs for NO ALM.
-        to_episodes_alm (list/array, optional): Cumulative TO episodes solved in ALM training.
-        to_episodes_no_alm (list/array, optional): Cumulative TO episodes solved in NO ALM training.
-        critic_updates_alm (list/array, optional): Cumulative Critic updates in ALM.
-        actor_updates_alm (list/array, optional): Cumulative Actor updates in ALM.
-        critic_updates_no_alm (list/array, optional): Cumulative Critic updates in NO ALM.
-        actor_updates_no_alm (list/array, optional): Cumulative Actor updates in NO ALM.
+        iters (list or np.ndarray): Training iterations.
+        mean_costs_alm (list or np.ndarray): Mean costs for ALM policy.
+        std_costs_alm (list or np.ndarray): Standard deviations of costs for ALM policy.
+        mean_costs_no_alm (list or np.ndarray): Mean costs for NO ALM policy.
+        std_costs_no_alm (list or np.ndarray): Standard deviations of costs for NO ALM policy.
+        to_episodes_alm (list or np.ndarray, optional): Cumulative TO episodes solved for ALM policy. Defaults to None.
+        to_episodes_no_alm (list or np.ndarray, optional): Cumulative TO episodes solved for NO ALM policy. Defaults to None.
+        mean_times_alm (list or np.ndarray, optional): Mean OCP resolution times for ALM policy. Defaults to None.
+        std_times_alm (list or np.ndarray, optional): Standard deviations of resolution times for ALM policy. Defaults to None.
+        mean_times_no_alm (list or np.ndarray, optional): Mean OCP resolution times for NO ALM policy. Defaults to None.
+        std_times_no_alm (list or np.ndarray, optional): Standard deviations of resolution times for NO ALM policy. Defaults to None.
     """
     # Create 3 subplots
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6))
@@ -499,28 +648,89 @@ def plot_cost_convergence(
     ax2.grid(True, linestyle=":", alpha=0.6)
     ax2.legend(fontsize=10)
 
-    # --- PLOT 3: Mean Cost vs Actor & Critic Updates ---
-    if actor_updates_alm is not None and critic_updates_alm is not None:
-        ax3.set_title("Mean TO Cost vs Actor/Critic Updates", fontsize=12, fontweight="bold")
-        
-        # Bottom X-Axis: Actor Updates
-        ax3.set_xlabel("Actor Updates (Solid lines)", fontsize=11)
-        ax3.plot(actor_updates_alm, mean_costs_alm, "o-", color="blue", label="ALM (Actor)", linewidth=2)
-        ax3.plot(actor_updates_no_alm, mean_costs_no_alm, "s-", color="orange", label="NO ALM (Actor)", linewidth=2)
+    # --- PLOT 3: Mean OCP Resolution Time vs Training Iterations ---
+    if mean_times_alm is not None and mean_times_no_alm is not None:
+        ax3.plot(iters, mean_times_alm, "o-", color="blue", label="ALM", linewidth=2)
+        if std_times_alm is not None:
+            ax3.fill_between(iters, mean_times_alm - std_times_alm, mean_times_alm + std_times_alm, color="blue", alpha=0.15)
+
+        ax3.plot(iters, mean_times_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
+        if std_times_no_alm is not None:
+            ax3.fill_between(iters, mean_times_no_alm - std_times_no_alm, mean_times_no_alm + std_times_no_alm, color="orange", alpha=0.15)
+
+        ax3.set_title("Mean OCP Resolution Time vs Training Iterations", fontsize=12, fontweight="bold")
+        ax3.set_xlabel("Training Iterations", fontsize=11)
+        ax3.set_ylabel("Mean Resolution Time [s]", fontsize=11)
         ax3.grid(True, linestyle=":", alpha=0.6)
-        
-        # Top X-Axis: Critic Updates
-        ax3_top = ax3.twiny()
-        ax3_top.set_xlabel("Critic Updates (Dashed lines)", fontsize=11)
-        # Using dashed lines and lighter colors to distinguish from Actor updates
-        ax3_top.plot(critic_updates_alm, mean_costs_alm, "o--", color="dodgerblue", label="ALM (Critic)", linewidth=2, alpha=0.7)
-        ax3_top.plot(critic_updates_no_alm, mean_costs_no_alm, "s--", color="coral", label="NO ALM (Critic)", linewidth=2, alpha=0.7)
-        
-        # Combine legends from both axes in Plot 3
-        lines_1, labels_1 = ax3.get_legend_handles_labels()
-        lines_2, labels_2 = ax3_top.get_legend_handles_labels()
-        ax3.legend(lines_1 + lines_2, labels_1 + labels_2, fontsize=9, loc='upper right')
+        ax3.legend(fontsize=10)
+    else:
+        ax3.set_visible(False)
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
     
+
+
+def plot_violation_convergence(
+    iters,
+    mean_viol_alm, std_viol_alm, num_viol_alm,
+    mean_viol_no_alm, std_viol_no_alm, num_viol_no_alm,
+    to_episodes_alm=None,
+    to_episodes_no_alm=None
+):
+    """
+    Plots the convergence of the mean trajectory violation and number of violations over training iterations.
+
+    Args:
+        iters (list or np.ndarray): Training iterations.
+        mean_viol_alm (list or np.ndarray): Mean violations for ALM policy.
+        std_viol_alm (list or np.ndarray): Standard deviations of violations for ALM policy.
+        num_viol_alm (list or np.ndarray): Number of violations for ALM policy.
+        mean_viol_no_alm (list or np.ndarray): Mean violations for NO ALM policy.
+        std_viol_no_alm (list or np.ndarray): Standard deviations of violations for NO ALM policy.
+        num_viol_no_alm (list or np.ndarray): Number of violations for NO ALM policy.
+        to_episodes_alm (list or np.ndarray, optional): Cumulative TO episodes solved for ALM policy. Defaults to None.
+        to_episodes_no_alm (list or np.ndarray, optional): Cumulative TO episodes solved for NO ALM policy. Defaults to None.
+
+    """
+    import matplotlib.pyplot as plt
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6))
+
+    # --- PLOT 1: Mean Violation vs Training Iterations ---
+    ax1.plot(iters, mean_viol_alm, "o-", color="blue", label="ALM Policy", linewidth=2)
+    #ax1.fill_between(iters, mean_viol_alm - std_viol_alm, mean_viol_alm + std_viol_alm, color="blue", alpha=0.15)
+    
+    ax1.plot(iters, mean_viol_no_alm, "s--", color="orange", label="NO ALM Policy", linewidth=2)
+    #ax1.fill_between(iters, mean_viol_no_alm - std_viol_no_alm, mean_viol_no_alm + std_viol_no_alm, color="orange", alpha=0.15)
+
+    ax1.set_title("Mean Violation vs Training Iterations", fontsize=12, fontweight="bold")
+    ax1.set_xlabel("Training Iterations", fontsize=11)
+    ax1.set_ylabel("Mean Max Violation Depth", fontsize=11)
+    ax1.grid(True, linestyle=":", alpha=0.6)
+    ax1.legend(fontsize=10)
+
+    # --- PLOT 2: Mean Violation vs TO Episodes Solved in Training ---
+    if to_episodes_alm is not None and len(to_episodes_alm) > 0:
+        ax2.plot(to_episodes_alm, mean_viol_alm, "o-", color="blue", label="ALM", linewidth=2)
+        #ax2.fill_between(to_episodes_alm, mean_viol_alm - std_viol_alm, mean_viol_alm + std_viol_alm, color="blue", alpha=0.15)
+
+        ax2.plot(to_episodes_no_alm, mean_viol_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
+        #ax2.fill_between(to_episodes_no_alm, mean_viol_no_alm - std_viol_no_alm, mean_viol_no_alm + std_viol_no_alm, color="orange", alpha=0.15)
+
+    ax2.set_title("Mean Violation vs TO Episodes Solved", fontsize=12, fontweight="bold")
+    ax2.set_xlabel("Cumulative TO Episodes Solved in Training", fontsize=11)
+    ax2.grid(True, linestyle=":", alpha=0.6)
+    ax2.legend(fontsize=10)
+
+    # --- PLOT 3: Number of Violations vs Training Iterations ---
+    ax3.plot(iters, num_viol_alm, "o-", color="blue", label="ALM", linewidth=2)
+    ax3.plot(iters, num_viol_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
+
+    ax3.set_title("Number of Constraint Violations vs Iterations", fontsize=12, fontweight="bold")
+    ax3.set_xlabel("Training Iterations", fontsize=11)
+    ax3.set_ylabel("Total Number of Violating Trajectories", fontsize=11)
+    ax3.grid(True, linestyle=":", alpha=0.6)
+    ax3.legend(fontsize=10)
+
+    plt.tight_layout()
