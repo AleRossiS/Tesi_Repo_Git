@@ -6,6 +6,10 @@ import utilities.plot_utilities as plt_util
 from utilities.parameters import * 
 import matplotlib.pyplot as plt
 
+"""
+Main script for evaluating the TO warm started with the actor policy, for the ALM and NO ALM cases. First, the script solves a set of TO problems for both policies and compares their rollouts (starting from INITIAL_STATES). Then, it generates a grid of initial states and evaluates the performance of both policies on this grid, comparing their costs and feasibility. Finally, it plots the results for visual comparison.
+"""
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # force JAX to use CPU  # Set JAX to use CPU only, avoiding GPU/TPU usage
 
 # Models parameters paths

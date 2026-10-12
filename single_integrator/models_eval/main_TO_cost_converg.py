@@ -7,6 +7,13 @@ import utilities.plot_utilities as plt_util
 from utilities.parameters import * 
 import matplotlib.pyplot as plt
 
+"""
+Main script for evaluating the TO warm started with the actor policy, for the ALM and NO ALM cases. First, the script solves a set of TO problems for both policies and compares their rollouts (starting from INITIAL_STATES) across different actor training iterations. Then  it computes the mean and standard deviation of the costs and times for each policy at each iteration, and plots the convergence results. The evaluation is done on a set of predefined initial states = INITIAL_STATES_HARD.
+The following metrics are computed and plotted:
+- Mean and standard deviation of costs for each policy at each iteration.
+- Mean and standard deviation of times for each policy at each iteration.
+"""
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # force JAX to use CPU  # Set JAX to use CPU only, avoiding GPU/TPU usage
 
 
@@ -33,8 +40,9 @@ rollouts_history = []
 
 # Start the evaluation loop for each iteration
 for i in iters:
-
-	print(f"--- Evaluating iteration {i}/{iters[-1]} ---\n")
+	print(f"\n================================================")
+	print(f"--- Evaluating iteration {i}/{iters[-1]} ---")
+	print(f"================================================\n")
 
 	path_alm = dir_alm / f"actor_policy_ALM_iter{i}.pkl"
 	path_no_alm = dir_no_alm / f"actor_policy_NO_ALM_iter{i}.pkl"
@@ -62,7 +70,7 @@ for i in iters:
 	actor_updates_no_alm_list.append(stats_no_alm.get("actor_updates", i))
 
 	# --- Solve the TO problems for the current iteration's actor models ---
-	print(f"• Solving TO problems for iteration {i}.\n")
+	print(f"\n• Solving TO problems for iteration {i}.\n")
 
 	x_alm, _, flags_alm, costs_alm, times_alm = fnc.solve_TO_problems(
 			actor=actor_alm,
@@ -122,7 +130,7 @@ for i in iters:
 	print(f"• Iteration {i} - Mean costs (ALM): {mean_costs_alm[-1]:.2f} ± {std_costs_alm[-1]:.2f}\n")
 	print(f"• Iteration {i} - Mean costs (NO ALM): {mean_costs_no_alm[-1]:.2f} ± {std_costs_no_alm[-1]:.2f}\n")
 	print(f"• Iteration {i} - Mean times (ALM): {mean_times_alm[-1]:.4f} ± {std_times_alm[-1]:.4f}\n")
-	print(f"• Iteration {i} - Mean times (NO ALM): {mean_times_no_alm[-1]:.4f} ± {std_times_no_alm[-1]:.4f}\n")
+	print(f"• Iteration {i} - Mean times (NO ALM): {mean_times_no_alm[-1]:.4f} ± {std_times_no_alm[-1]:.4f}\n\n")
 
 
 # --- Plot all rollouts in a single dynamic grid window ---

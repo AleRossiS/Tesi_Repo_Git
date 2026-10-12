@@ -154,8 +154,8 @@ def plot_rollouts_comparison(x_trajs_ALM, x_trajs_NO_ALM,
                 zorder=100)
 
         ax.set_title(title, fontsize=14, fontweight='bold')
-        ax.set_xlabel("X Position", fontsize=12)
-        ax.set_ylabel("Y Position", fontsize=12)
+        ax.set_xlabel("X [m]", fontsize=12)
+        ax.set_ylabel("Y [m]", fontsize=12)
         ax.grid(True, linestyle=':', alpha=0.6)
         ax.set_aspect('equal', adjustable='box')
 
@@ -180,7 +180,7 @@ def plot_rollouts_comparison(x_trajs_ALM, x_trajs_NO_ALM,
         plt.Line2D([0], [0], marker='*', color='red', label='Target', linestyle='None', markersize=12)
     ]
     
-    fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 1.02), ncol=6, fontsize=9.5, framealpha=0.9)
+    fig.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, 0.98), ncol=6, fontsize=9.5, framealpha=0.9)
     plt.tight_layout()
     plt.show()
 
@@ -210,7 +210,7 @@ def plot_all_iterations_rollouts(rollouts_history, obstacle_params=OBSTACLE_PARA
 
     # Create the main constrained figure
     fig = plt.figure(figsize=(cols * 7, rows * 4), layout='constrained')
-    fig.suptitle("Evolution of Policy Rollouts Across Iterations", fontsize=18, fontweight='bold')
+    fig.suptitle("Evolution of Policy Rollouts Across Iterations", fontsize=20, fontweight='bold')
 
     # Generate a grid of independent subfigures with increased spacing for better separation
     subfigs = fig.subfigures(rows, cols, wspace=0.1, hspace=0.15).flatten()
@@ -345,8 +345,6 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
     """
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    # Map categorical feasibility values (0, 1, 2, 3) to RGBA color channels
-    # 0: Both Fail (peachpuff), 1: NO ALM Only (lightpink), 2: ALM Only (lightblue), 3: Both Feas (gainsboro)
     color_map_rgba = {
         0: mcolors.to_rgba('peachpuff', alpha=0.8),
         1: mcolors.to_rgba('lightpink', alpha=0.8),
@@ -354,7 +352,6 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
         3: mcolors.to_rgba('gainsboro', alpha=0.8)
     }
 
-    # Construct 3D RGBA grid array for direct color space interpolation
     H, W = feas_grid.shape
     rgba_grid = np.zeros((H, W, 4))
 
@@ -362,10 +359,8 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
         mask = (feas_grid == val)
         rgba_grid[mask] = rgba
 
-    # Mask invalid/obstacle points (-1) with full transparency
     rgba_grid[feas_grid == -1] = [0.0, 0.0, 0.0, 0.0]
 
-    # Display background with bicubic RGBA interpolation to create smooth color gradients across region borders
     ax.imshow(
         rgba_grid,
         extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]],
@@ -374,7 +369,6 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
         zorder=1
     )
 
-    # Extract valid points for pointwise symbol plotting
     X, Y = np.meshgrid(x_vals, y_vals)
     plot_mask = (feas_grid != -1)
     valid_x = X[plot_mask]
@@ -386,24 +380,18 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
     mask_alm_only = (valid_vals == 2)
     mask_both_feas = (valid_vals == 3)
 
-    # Overlaid crisp symbols matching the cost heatmap style
-    # Both Fail -> Dark orange square ('s')
     ax.scatter(valid_x[mask_both_fail], valid_y[mask_both_fail], 
                marker='s', c='darkorange', edgecolor='none', s=16, alpha=0.9, zorder=3)
     
-    # ALM Fail & NO ALM Feasible -> Dark red cross ('x')
     ax.scatter(valid_x[mask_no_alm_only], valid_y[mask_no_alm_only], 
                marker='x', c='darkred', linewidths=1.2, s=16, alpha=0.9, zorder=3)
     
-    # ALM Feasible & NO ALM Fail -> Navy star ('*')
     ax.scatter(valid_x[mask_alm_only], valid_y[mask_alm_only], 
                marker='*', c='navy', edgecolor='none', s=22, alpha=0.9, zorder=3)
     
-    # Both Feasible -> Solid white circle ('o') without border
     ax.scatter(valid_x[mask_both_feas], valid_y[mask_both_feas], 
                marker='o', c='white', edgecolor='none', s=14, alpha=0.95, zorder=3)
 
-    # Draw solid green elliptical obstacles without borders
     for idx, obs in enumerate(obstacle_params):
         ellipse = Ellipse(
             xy=(obs['x_ob'], obs['y_ob']),
@@ -412,11 +400,9 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
         )
         ax.add_patch(ellipse)
 
-    # Target marker
     target_line = ax.plot(target_pos[0], target_pos[1], marker='*', color='red', 
                           markeredgecolor='none', markersize=18, label='Target', zorder=5)[0]
 
-    # Custom legend configuration with matching symbols
     legend_elements = [
         plt.Line2D([0], [0], marker='*', color='w', label='ALM Feasible & NO ALM Fail', 
                    markerfacecolor='navy', markersize=9),
@@ -429,18 +415,28 @@ def plot_feasibility_heatmap(x_vals, y_vals, feas_grid, obstacle_params=OBSTACLE
         Patch(facecolor='green', edgecolor='none', label='Obstacles'),
         target_line
     ]
-    ax.legend(handles=legend_elements, loc='upper right', fontsize=9, framealpha=0.95)
 
-    # Axis and square aspect ratio styling
-    ax.set_title("Pointwise Feasibility Map Comparison (ALM vs NO ALM)", fontsize=14, fontweight='bold', pad=12)
-    ax.set_xlabel("X Position", fontsize=12)
-    ax.set_ylabel("Y Position", fontsize=12)
+    fig.suptitle("Feasibility Map Comparison (ALM vs NO ALM)", fontsize=14, fontweight='bold', y=0.98)
+    
+    # Legend
+    fig.legend(
+        handles=legend_elements, 
+        loc='lower center', 
+        bbox_to_anchor=(0.5, 1.02), 
+        bbox_transform=ax.transAxes, 
+        ncol=6, 
+        fontsize=8.5, 
+        framealpha=0.9
+    )
+
+    ax.set_xlabel("X [m]", fontsize=12)
+    ax.set_ylabel("Y [m]", fontsize=12)
     ax.set_xlim([x_vals[0], x_vals[-1]])
     ax.set_ylim([y_vals[0], y_vals[-1]])
     ax.set_aspect('equal', adjustable='box')
     ax.grid(False)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.94])
     #plt.show()
 
 
@@ -448,69 +444,49 @@ def plot_cost_comparison_heatmap(x_vals, y_vals, cost_alm_grid, cost_no_alm_grid
                                  obstacle_params=OBSTACLE_PARAMETERS, target_pos=TARGET_POS,
                                  only_both_feasible=True, clip_percentile=98.0, tol=0.5):
     """
-    Pointwise cost comparison heatmap with smooth RGBA bicubic interpolation to blend 
-    non-feasible boundaries gracefully into a soft background:
-    - Navy star ('*'): ALM Lower Cost (C_ALM < C_NO_ALM - tol)
-    - Solid white circle ('o'): Equal Cost (|C_ALM - C_NO_ALM| <= tol)
-    - Dark red cross ('x'): NO ALM Lower Cost (C_ALM > C_NO_ALM + tol)
+    Pointwise cost comparison heatmap with smooth RGBA bicubic interpolation.
     """
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    # Compute cost difference matrix: (C_ALM - C_NO_ALM)
     cost_diff = np.full_like(cost_alm_grid, dtype=float, fill_value=np.nan)
     
-    # Select which states to plot based on the boolean flag
     if only_both_feasible:
-        # Mask only points where both policies successfully reach the target without collisions
         plot_mask = (feas_grid == 3)
     else:
-        # Mask all sampled points (excludes only states that spawn directly inside an obstacle: -1)
         plot_mask = (feas_grid != -1)
         
     cost_diff[plot_mask] = cost_alm_grid[plot_mask] - cost_no_alm_grid[plot_mask]
 
     X, Y = np.meshgrid(x_vals, y_vals)
-
-    # Extract valid cost difference values to compute scale limits
     valid_diffs = cost_diff[~np.isnan(cost_diff)]
 
     if len(valid_diffs) > 0:
         if clip_percentile is not None and clip_percentile < 100.0:
-            # Clip max_val at the specified percentile to exclude extreme outliers
             max_val = np.percentile(np.abs(valid_diffs), clip_percentile)
         else:
-            # Standard absolute maximum without clipping
             max_val = np.max(np.abs(valid_diffs))
             
         max_val = max(max_val, 1.0)
     else:
         max_val = 1.0
 
-    # Color normalization and continuous colormap
     cmap = plt.get_cmap('coolwarm')
     norm = mcolors.Normalize(vmin=-max_val, vmax=max_val)
 
-    # Construct RGBA grid to handle soft blending at non-feasible boundaries
     H, W = cost_diff.shape
     rgba_grid = np.zeros((H, W, 4))
-
-    # Soft neutral RGBA color for non-feasible regions
     infeasible_rgba = mcolors.to_rgba('whitesmoke', alpha=0.6)
 
     for r in range(H):
         for c in range(W):
             if feas_grid[r, c] == -1:
-                # Inside obstacle: transparent (green obstacle patch will overlay)
                 rgba_grid[r, c] = [0.0, 0.0, 0.0, 0.0]
             elif np.isnan(cost_diff[r, c]):
-                # Non-feasible state: soft neutral background
                 rgba_grid[r, c] = infeasible_rgba
             else:
-                # Valid cost difference state
                 color = cmap(norm(cost_diff[r, c]))
                 rgba_grid[r, c] = [color[0], color[1], color[2], 0.85]
 
-    # Display smooth background using bicubic RGBA interpolation to eliminate sharp boundaries
     ax.imshow(
         rgba_grid,
         extent=[x_vals[0], x_vals[-1], y_vals[0], y_vals[-1]],
@@ -519,36 +495,29 @@ def plot_cost_comparison_heatmap(x_vals, y_vals, cost_alm_grid, cost_no_alm_grid
         zorder=1
     )
 
-    # Extract coordinates and values for pointwise symbol overlay
     valid_x = X[plot_mask]
     valid_y = Y[plot_mask]
     valid_vals = cost_diff[plot_mask]
 
-    # Categorize differences into Lower, Equal, and Higher
     mask_lower = valid_vals < -tol
     mask_equal = np.abs(valid_vals) <= tol
     mask_higher = valid_vals > tol
 
-    # Overlaid crisp symbols
-    # ALM Lower Cost -> Navy star ('*')
     ax.scatter(valid_x[mask_lower], valid_y[mask_lower], 
                marker='*', c='navy', s=22, alpha=0.9, zorder=3)
     
-    # Equal Cost -> Solid white circle ('o') without black border
     ax.scatter(valid_x[mask_equal], valid_y[mask_equal], 
                marker='o', c='white', edgecolor='none', s=14, alpha=0.95, zorder=3)
     
-    # NO ALM Lower Cost -> Dark red cross ('x')
     ax.scatter(valid_x[mask_higher], valid_y[mask_higher], 
                marker='x', c='darkred', linewidths=1.2, s=16, alpha=0.9, zorder=3)
 
-    # Colorbar configuration using ScalarMappable
+    # Colorbar Reale
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax, fraction=0.046, pad=0.04)
     cbar.set_label("Cost Difference ($C_{ALM} - C_{NO\\_ALM}$)", fontsize=11)
 
-    # Draw solid green elliptical obstacles without borders
     for idx, obs in enumerate(obstacle_params):
         ellipse = Ellipse(
             xy=(obs['x_ob'], obs['y_ob']),
@@ -557,11 +526,9 @@ def plot_cost_comparison_heatmap(x_vals, y_vals, cost_alm_grid, cost_no_alm_grid
         )
         ax.add_patch(ellipse)
 
-    # Target marker
     target_line = ax.plot(target_pos[0], target_pos[1], marker='*', color='red', 
                           markeredgecolor='none', markersize=18, label='Target', zorder=5)[0]
 
-    # Custom legend configuration with matching symbols
     legend_elements = [
         plt.Line2D([0], [0], marker='*', color='w', label='ALM Lower Cost ($C_{ALM} < C_{NO\\_ALM}$)', 
                    markerfacecolor='navy', markeredgecolor='navy', markersize=9),
@@ -572,19 +539,29 @@ def plot_cost_comparison_heatmap(x_vals, y_vals, cost_alm_grid, cost_no_alm_grid
         Patch(facecolor='green', edgecolor='none', label='Obstacles'),
         target_line
     ]
-    ax.legend(handles=legend_elements, loc='upper right', fontsize=9, framealpha=0.95)
 
-    # Axis and square aspect ratio styling
     title_suffix = "(Both Feasible Only)" if only_both_feasible else "(All Valid States)"
-    ax.set_title(f"Smooth Cost Difference Map {title_suffix}", fontsize=14, fontweight='bold', pad=12)
-    ax.set_xlabel("X Position", fontsize=12)
-    ax.set_ylabel("Y Position", fontsize=12)
+    fig.suptitle(f"Cost Difference Map {title_suffix}", fontsize=14, fontweight='bold', y=0.94)
+    
+    # Legend
+    fig.legend(
+        handles=legend_elements, 
+        loc='lower center', 
+        bbox_to_anchor=(0.5, 1.02), 
+        bbox_transform=ax.transAxes, 
+        ncol=5, 
+        fontsize=8.5, 
+        framealpha=0.9
+    )
+
+    ax.set_xlabel("X [m]", fontsize=12)
+    ax.set_ylabel("Y [m]", fontsize=12)
     ax.set_xlim([x_vals[0], x_vals[-1]])
     ax.set_ylim([y_vals[0], y_vals[-1]])
     ax.set_aspect('equal', adjustable='box')
     ax.grid(False)
 
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0, 1, 0.94])
     #plt.show()
 
 

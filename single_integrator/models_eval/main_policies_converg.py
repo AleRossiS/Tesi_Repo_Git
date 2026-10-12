@@ -7,6 +7,16 @@ import utilities.plot_utilities as plt_util
 from utilities.parameters import * 
 import matplotlib.pyplot as plt
 
+"""
+This script evaluates the performance of two policies (with and without ALM) over a series of actor trainig iterations. It loads the saved models, performs rollouts, computes violation metrics, and visualizes the results. The evaluation is done on a set of predefined initial states and obstacle parameters.
+The following metrics are computed and plotted:
+- Rolout trajectories of bot policies for each iteration from initial states.
+- Mean and standard deviation of constraint violations for each policy for a set of initial states.
+- Total number of violating points for each policy at each iteration.
+
+The initial states used are INITIAL_STATES_HARD.
+"""
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "" # force JAX to use CPU
 
 # Iterations config
@@ -27,7 +37,9 @@ rollouts_history = []
 
 # Start the evaluation loop for each iteration
 for i in iters:
-    print(f"--- Evaluating policy rollouts for iteration {i}/{iters[-1]} ---\n")
+    print(f"\n================================================")
+    print(f"Evaluating policy rollouts for iteration {i}/{iters[-1]}")
+    print(f"=================================================\n")
 
     path_alm = dir_alm / f"actor_policy_ALM_iter{i}.pkl"
     path_no_alm = dir_no_alm / f"actor_policy_NO_ALM_iter{i}.pkl"
@@ -45,7 +57,7 @@ for i in iters:
     to_episodes_no_alm_list.append(stats_no_alm.get("to_episodes", 0))
 
     # --- Perform pure policy rollouts ---
-    print(f"• Rolling out policy for iteration {i}.\n")
+    print(f"\n• Rolling out policy for iteration {i}.\n")
 
     x_alm, u_alm, costs_alm = fnc.policy_rollout(actor_alm, INITIAL_STATES_HARD, N)
     x_no_alm, u_no_alm, costs_no_alm = fnc.policy_rollout(actor_no_alm, INITIAL_STATES_HARD, N)
@@ -78,8 +90,8 @@ for i in iters:
     std_viols_no_alm.append(std_v_no)
     num_viols_no_alm.append(num_v_no)
 
-    print(f"• Iteration {i} - Mean Violations (ALM): {mean_v_alm:.4f} ± {std_v_alm:.4f} | Total Violating Points: {num_v_alm}")
-    print(f"• Iteration {i} - Mean Violations (NO ALM): {mean_v_no:.4f} ± {std_v_no:.4f} | Total Violating Points: {num_v_no}\n")
+    print(f"\n• Iteration {i} - Mean Violations (ALM): {mean_v_alm:.4f} ± {std_v_alm:.4f} | Total Violating Points: {num_v_alm}")
+    print(f"• Iteration {i} - Mean Violations (NO ALM): {mean_v_no:.4f} ± {std_v_no:.4f} | Total Violating Points: {num_v_no}\n\n")
 
     # --- Append current rollouts to history ---
     rollouts_history.append({
