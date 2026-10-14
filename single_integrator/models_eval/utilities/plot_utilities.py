@@ -608,7 +608,7 @@ def plot_cost_convergence(
 
     ax1.set_title("Mean TO Cost vs Training Iterations", fontsize=12, fontweight="bold")
     ax1.set_xlabel("Training Iterations", fontsize=11)
-    ax1.set_ylabel("Mean Trajectory Cost ($cost_{ALM}$)", fontsize=11)
+    ax1.set_ylabel("Mean Trajectory Cost", fontsize=11)
     ax1.grid(True, linestyle=":", alpha=0.6)
     ax1.legend(fontsize=10)
 
@@ -683,7 +683,7 @@ def plot_violation_convergence(
 
     ax1.set_title("Mean Violation vs Training Iterations", fontsize=12, fontweight="bold")
     ax1.set_xlabel("Training Iterations", fontsize=11)
-    ax1.set_ylabel("Mean Max Violation Depth", fontsize=11)
+    ax1.set_ylabel("Mean Violation Depth", fontsize=11)
     ax1.grid(True, linestyle=":", alpha=0.6)
     ax1.legend(fontsize=10)
 
