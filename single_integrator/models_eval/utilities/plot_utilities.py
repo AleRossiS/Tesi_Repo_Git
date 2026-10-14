@@ -569,15 +569,19 @@ def plot_cost_comparison_heatmap(x_vals, y_vals, cost_alm_grid, cost_no_alm_grid
 def plot_cost_convergence(
     iters,
     mean_costs_alm,
-    std_costs_alm,
+    q1_costs_alm,
+    q3_costs_alm,
     mean_costs_no_alm,
-    std_costs_no_alm,
+    q1_costs_no_alm,
+    q3_costs_no_alm,
     to_episodes_alm=None,
     to_episodes_no_alm=None,
-    mean_times_alm=None,    
-    std_times_alm=None,
+    mean_times_alm=None, 
+    q1_times_alm=None,
+    q3_times_alm=None,   
     mean_times_no_alm=None,
-    std_times_no_alm=None   
+    q1_times_no_alm=None,
+    q3_times_no_alm=None   
 ):
     """
     Plots the convergence of the mean TO trajectory cost, TO episodes solved, 
@@ -586,25 +590,30 @@ def plot_cost_convergence(
     Args:
         iters (list or np.ndarray): Training iterations.
         mean_costs_alm (list or np.ndarray): Mean costs for ALM policy.
-        std_costs_alm (list or np.ndarray): Standard deviations of costs for ALM policy.
+        q1_costs_alm (list or np.ndarray): First quartile of costs for ALM policy.
+        q3_costs_alm (list or np.ndarray): Third quartile of costs for ALM policy.
         mean_costs_no_alm (list or np.ndarray): Mean costs for NO ALM policy.
-        std_costs_no_alm (list or np.ndarray): Standard deviations of costs for NO ALM policy.
+        q1_costs_no_alm (list or np.ndarray): First quartile of costs for NO ALM policy.
+        q3_costs_no_alm (list or np.ndarray): Third quartile of costs for NO ALM policy.
         to_episodes_alm (list or np.ndarray, optional): Cumulative TO episodes solved for ALM policy. Defaults to None.
         to_episodes_no_alm (list or np.ndarray, optional): Cumulative TO episodes solved for NO ALM policy. Defaults to None.
         mean_times_alm (list or np.ndarray, optional): Mean OCP resolution times for ALM policy. Defaults to None.
-        std_times_alm (list or np.ndarray, optional): Standard deviations of resolution times for ALM policy. Defaults to None.
+        q1_times_alm (list or np.ndarray, optional): First quartile of resolution times for ALM policy. Defaults to None.
+        q3_times_alm (list or np.ndarray, optional): Third quartile of resolution times for ALM policy. Defaults to None.
         mean_times_no_alm (list or np.ndarray, optional): Mean OCP resolution times for NO ALM policy. Defaults to None.
-        std_times_no_alm (list or np.ndarray, optional): Standard deviations of resolution times for NO ALM policy. Defaults to None.
+        q1_times_no_alm (list or np.ndarray, optional): First quartile of resolution times for NO ALM policy. Defaults to None.
+        q3_times_no_alm (list or np.ndarray, optional): Third quartile of resolution times for NO ALM policy. Defaults to None.
     """
-    # Create 3 subplots
+
+    # Create a figure with 3 subplots for cost convergence, TO episodes, and OCP resolution time
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(20, 6))
 
     # --- PLOT 1: Mean Cost vs Training Iterations ---
     ax1.plot(iters, mean_costs_alm, "o-", color="blue", label="ALM Policy + TO Warm-Start", linewidth=2)
-    ax1.fill_between(iters, mean_costs_alm - std_costs_alm, mean_costs_alm + std_costs_alm, color="blue", alpha=0.15)
+    ax1.fill_between(iters, q1_costs_alm, q3_costs_alm, color="blue", alpha=0.15)
     
     ax1.plot(iters, mean_costs_no_alm, "s--", color="orange", label="NO ALM Policy + TO Warm-Start", linewidth=2)
-    ax1.fill_between(iters, mean_costs_no_alm - std_costs_no_alm, mean_costs_no_alm + std_costs_no_alm, color="orange", alpha=0.15)
+    ax1.fill_between(iters, q1_costs_no_alm, q3_costs_no_alm, color="orange", alpha=0.15)
 
     ax1.set_title("Mean TO Cost vs Training Iterations", fontsize=12, fontweight="bold")
     ax1.set_xlabel("Training Iterations", fontsize=11)
@@ -615,10 +624,10 @@ def plot_cost_convergence(
     # --- PLOT 2: Mean Cost vs TO Episodes Solved in Training ---
     if to_episodes_alm is not None and len(to_episodes_alm) > 0:
         ax2.plot(to_episodes_alm, mean_costs_alm, "o-", color="blue", label="ALM", linewidth=2)
-        ax2.fill_between(to_episodes_alm, mean_costs_alm - std_costs_alm, mean_costs_alm + std_costs_alm, color="blue", alpha=0.15)
+        ax2.fill_between(to_episodes_alm, q1_costs_alm, q3_costs_alm, color="blue", alpha=0.15)
 
         ax2.plot(to_episodes_no_alm, mean_costs_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
-        ax2.fill_between(to_episodes_no_alm, mean_costs_no_alm - std_costs_no_alm, mean_costs_no_alm + std_costs_no_alm, color="orange", alpha=0.15)
+        ax2.fill_between(to_episodes_no_alm, q1_costs_no_alm, q3_costs_no_alm, color="orange", alpha=0.15)
 
     ax2.set_title("Mean TO Cost vs TO Episodes Solved", fontsize=12, fontweight="bold")
     ax2.set_xlabel("Cumulative TO Episodes Solved in Training", fontsize=11)
@@ -628,12 +637,12 @@ def plot_cost_convergence(
     # --- PLOT 3: Mean OCP Resolution Time vs Training Iterations ---
     if mean_times_alm is not None and mean_times_no_alm is not None:
         ax3.plot(iters, mean_times_alm, "o-", color="blue", label="ALM", linewidth=2)
-        if std_times_alm is not None:
-            ax3.fill_between(iters, mean_times_alm - std_times_alm, mean_times_alm + std_times_alm, color="blue", alpha=0.15)
+        if q1_times_alm is not None and q3_times_alm is not None:
+            ax3.fill_between(iters, q1_times_alm, q3_times_alm, color="blue", alpha=0.15)
 
         ax3.plot(iters, mean_times_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
-        if std_times_no_alm is not None:
-            ax3.fill_between(iters, mean_times_no_alm - std_times_no_alm, mean_times_no_alm + std_times_no_alm, color="orange", alpha=0.15)
+        if q1_times_no_alm is not None and q3_times_no_alm is not None:
+            ax3.fill_between(iters, q1_times_no_alm, q3_times_no_alm, color="orange", alpha=0.15)
 
         ax3.set_title("Mean OCP Resolution Time vs Training Iterations", fontsize=12, fontweight="bold")
         ax3.set_xlabel("Training Iterations", fontsize=11)
@@ -644,7 +653,6 @@ def plot_cost_convergence(
         ax3.set_visible(False)
 
     plt.tight_layout()
-    #plt.show()
     
 
 
