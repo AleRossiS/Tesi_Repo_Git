@@ -133,9 +133,7 @@ plt_util.plot_violation_convergence(
     num_viol_alm=num_viols_alm,
     mean_viol_no_alm=mean_viols_no_alm,
     std_viol_no_alm=std_viols_no_alm,
-    num_viol_no_alm=num_viols_no_alm,
-    to_episodes_alm=to_episodes_alm_list,
-    to_episodes_no_alm=to_episodes_no_alm_list
+    num_viol_no_alm=num_viols_no_alm
 )
 
 plt.show()  # Show all plots at the end of the evaluation loop

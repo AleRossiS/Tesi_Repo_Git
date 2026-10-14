@@ -172,7 +172,7 @@ def plot_rollouts_comparison(x_trajs_ALM, x_trajs_NO_ALM,
 
     # Figure legend
     legend_elements = [
-        plt.Line2D([0], [0], color='green', marker='o', label='Feasible Trajectory', markersize=5),
+        plt.Line2D([0], [0], color='blue', marker='o', label='Feasible Trajectory', markersize=5),
         plt.Line2D([0], [0], color='orange', marker='o', label='Unfeasible Trajectory', markersize=5),
         plt.Line2D([0], [0], color='none', marker='o', markerfacecolor='red', markeredgecolor='red', label='Point Inside Obstacle', markersize=6),
         plt.Line2D([0], [0], color='none', marker='o', markerfacecolor='black', markeredgecolor='black', label='Start Point', markersize=5),
@@ -656,15 +656,15 @@ def plot_cost_convergence(
     
 
 
+
 def plot_violation_convergence(
     iters,
     mean_viol_alm, std_viol_alm, num_viol_alm,
-    mean_viol_no_alm, std_viol_no_alm, num_viol_no_alm,
-    to_episodes_alm=None,
-    to_episodes_no_alm=None
+    mean_viol_no_alm, std_viol_no_alm, num_viol_no_alm
 ):
     """
-    Plots the convergence of the mean trajectory violation and number of violations over training iterations.
+    Plots the convergence of the mean trajectory violation, number of violations,
+    and cumulative violation severity (Mean x Count) over training iterations.
 
     Args:
         iters (list or np.ndarray): Training iterations.
@@ -674,9 +674,6 @@ def plot_violation_convergence(
         mean_viol_no_alm (list or np.ndarray): Mean violations for NO ALM policy.
         std_viol_no_alm (list or np.ndarray): Standard deviations of violations for NO ALM policy.
         num_viol_no_alm (list or np.ndarray): Number of violations for NO ALM policy.
-        to_episodes_alm (list or np.ndarray, optional): Cumulative TO episodes solved for ALM policy. Defaults to None.
-        to_episodes_no_alm (list or np.ndarray, optional): Cumulative TO episodes solved for NO ALM policy. Defaults to None.
-
     """
     import matplotlib.pyplot as plt
 
@@ -695,26 +692,26 @@ def plot_violation_convergence(
     ax1.grid(True, linestyle=":", alpha=0.6)
     ax1.legend(fontsize=10)
 
-    # --- PLOT 2: Mean Violation vs TO Episodes Solved in Training ---
-    if to_episodes_alm is not None and len(to_episodes_alm) > 0:
-        ax2.plot(to_episodes_alm, mean_viol_alm, "o-", color="blue", label="ALM", linewidth=2)
-        #ax2.fill_between(to_episodes_alm, mean_viol_alm - std_viol_alm, mean_viol_alm + std_viol_alm, color="blue", alpha=0.15)
+    # --- PLOT 2: Number of Constraint Violations vs Iterations ---
+    ax2.plot(iters, num_viol_alm, "o-", color="blue", label="ALM", linewidth=2)
+    ax2.plot(iters, num_viol_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
 
-        ax2.plot(to_episodes_no_alm, mean_viol_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
-        #ax2.fill_between(to_episodes_no_alm, mean_viol_no_alm - std_viol_no_alm, mean_viol_no_alm + std_viol_no_alm, color="orange", alpha=0.15)
-
-    ax2.set_title("Mean Violation vs TO Episodes Solved", fontsize=12, fontweight="bold")
-    ax2.set_xlabel("Cumulative TO Episodes Solved in Training", fontsize=11)
+    ax2.set_title("Number of Constraint Violations vs Iterations", fontsize=12, fontweight="bold")
+    ax2.set_xlabel("Training Iterations", fontsize=11)
+    ax2.set_ylabel("Total Number of Violating Trajectories", fontsize=11)
     ax2.grid(True, linestyle=":", alpha=0.6)
     ax2.legend(fontsize=10)
 
-    # --- PLOT 3: Number of Violations vs Training Iterations ---
-    ax3.plot(iters, num_viol_alm, "o-", color="blue", label="ALM", linewidth=2)
-    ax3.plot(iters, num_viol_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
+    # --- PLOT 3: Cumulative Violation Severity (Mean * Count) ---
+    severity_alm = np.array(mean_viol_alm) * np.array(num_viol_alm)
+    severity_no_alm = np.array(mean_viol_no_alm) * np.array(num_viol_no_alm)
 
-    ax3.set_title("Number of Constraint Violations vs Iterations", fontsize=12, fontweight="bold")
+    ax3.plot(iters, severity_alm, "o-", color="blue", label="ALM", linewidth=2)
+    ax3.plot(iters, severity_no_alm, "s--", color="orange", label="NO ALM", linewidth=2)
+
+    ax3.set_title("Cumulative Violation Severity (Mean × Count)", fontsize=12, fontweight="bold")
     ax3.set_xlabel("Training Iterations", fontsize=11)
-    ax3.set_ylabel("Total Number of Violating Trajectories", fontsize=11)
+    ax3.set_ylabel("Total Violation Severity Index", fontsize=11)
     ax3.grid(True, linestyle=":", alpha=0.6)
     ax3.legend(fontsize=10)
 
